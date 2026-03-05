@@ -16,7 +16,7 @@ hours_recent: 24
 # 📧 A qué correos se enviará el resumen.
 # Puedes añadir más poniendo cada uno en una línea nueva con "-".
 to_emails:
-  - "anartz2001@gmail.com"
+  - "joseba.ayarzaguena@brainandcode.tech"
 
 # 🌐 Medios o páginas de donde se sacan las noticias.
 # Puedes añadir o quitar medios fácilmente copiando un bloque.
