@@ -3,7 +3,9 @@ cnmv_nifs: "A-28294726"
 # Puedes poner una o varias entre comillas. 
 # Si no quieres filtro, deja las comillas vacías: ""
 keywords:
-  - " "
+  - "Acción Judicial"
+  - "Acuerdo extrajudicial"
+  - "Accionistas mayoritarios"
 
 # 🌍 Zona horaria (normalmente no se toca).
 # Si estás en España, deja "Europe/Madrid".
