@@ -11,13 +11,13 @@ keywords:
 # El contenido que pase Layer 1 será descartado si contiene estas palabras.
 # Si no quieres usar este filtro, deja la lista vacía: []
 excluded_keywords: [
-  "Iran","guerra"
+  "Irán","guerra"
 ]
 
 # ✅ Palabras clave FINALES (Layer 3).
 # Solo se incluirá contenido que contenga estas palabras (tras pasar Layer 1 y Layer 2).
 # Si no quieres usar este filtro, deja la lista vacía: []
-keywords_final_layer: []
+keywords_final_layer: ["Champions"]
 
 # 🌍 Zona horaria (normalmente no se toca).
 # Si estás en España, deja "Europe/Madrid".
