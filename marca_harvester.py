@@ -40,6 +40,36 @@ for s in SOURCES_RAW:
         "max_to_fetch": s.get("max_to_fetch", 400),
     })
 
+# ========= UTILIDADES =========
+
+def norm(s: str) -> str:
+    if not s:
+        return ""
+    s = unicodedata.normalize('NFKD', s)
+    return ''.join(c for c in s if not unicodedata.combining(c)).lower()
+
+# ========= FILTERING LAYERS =========
+
+def _normalize_keywords(raw):
+    """Normaliza keywords desde config (lista o string)"""
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        parts = re.split(r"[,\s;]+", raw)
+        return [norm(p.strip()) for p in parts if p.strip()]
+    if isinstance(raw, (list, tuple, set)):
+        return [norm(str(x).strip()) for x in raw if str(x).strip()]
+    return []
+
+# Layer 1: Keywords (include articles matching these)
+KEYWORDS_L1 = _normalize_keywords(CFG.get("keywords") or CFG.get("keyword"))
+
+# Layer 2: Excluded keywords (exclude articles matching these)
+KEYWORDS_L2_EXCLUDED = _normalize_keywords(CFG.get("excluded_keywords") or [])
+
+# Layer 3: Final layer keywords (include only articles matching these, after L1 & L2)
+KEYWORDS_L3_FINAL = _normalize_keywords(CFG.get("keywords_final_layer") or [])
+
 # ========= CNMV POSICIONES CORTAS =========
 # URL tal y como la usas en el navegador
 CNMV_BASE_URL = "https://www.cnmv.es/Portal/Consultas/ee/posicionescortas"
@@ -557,6 +587,51 @@ def enviar_correo(html_content, subject):
     log(f"Correo enviado a {', '.join(TO_EMAILS)} ✅")
 
 # ========= MAIN =========
+# ========= MAIN =========
+def apply_layer1_filter(listing, kw_list):
+    """
+    Layer 1: Prefiltro por título/URL si hay keywords y reduce significativamente.
+    Si no hay keywords, devuelve el listing sin cambios.
+    """
+    if not kw_list:
+        return listing, False
+    
+    before = len(listing)
+    pre = [
+        it for it in listing
+        if any(k in norm(it.get("title","")) or k in norm(it.get("url","")) for k in kw_list)
+    ]
+    THRESH_ABS = 50
+    THRESH_REL = 0.2  # 20%
+    use_prefilter = len(pre) >= max(THRESH_ABS, int(before * THRESH_REL))
+    
+    if use_prefilter:
+        return pre, True
+    else:
+        return listing, False
+
+def apply_layer2_filter(article_text, excluded_kw_list):
+    """
+    Layer 2: Excluir artículos que contengan palabras prohibidas.
+    Devuelve True si el artículo debe ser EXCLUIDO (contiene excluded keywords).
+    """
+    if not excluded_kw_list:
+        return False
+    
+    fulltxt = norm(article_text)
+    return any(k in fulltxt for k in excluded_kw_list)
+
+def apply_layer3_filter(article_text, final_kw_list):
+    """
+    Layer 3: Filtro final - solo incluir artículos que contengan estas palabras.
+    Devuelve True si el artículo PASA el filtro (contiene final keywords).
+    """
+    if not final_kw_list:
+        return True  # Si no hay keywords finales, pasar todo
+    
+    fulltxt = norm(article_text)
+    return any(k in fulltxt for k in final_kw_list)
+
 def main(keyword=None, tzname="Europe/Madrid"):
     log(f"CNMV_NIFS configurados: {CNMV_NIFS}")
     seen = load_state()
@@ -566,35 +641,29 @@ def main(keyword=None, tzname="Europe/Madrid"):
     for it in listing[:15]:
         print(" -", f"[{it.get('source','?')}] {(it.get('title') or '').strip()}")
 
-    # Normaliza keyword(s) -> lista
-    kw_list = None
+    # ========= LAYER 1: Prefiltro adaptativo por keywords (incluyentes) =========
+    kw_list = KEYWORDS_L1  # Usar keywords del config
+    
+    # Sobreescribir si se pasa keyword como parámetro (para CLI)
     if keyword:
         if isinstance(keyword, (list, tuple, set)):
             kw_list = [norm(k) for k in keyword if k]
         else:
             kw_list = [norm(keyword)]
-
-    # Prefiltro ADAPTATIVO por título/URL (solo si reduce significativamente)
-    if kw_list:
-        before = len(listing)
-        pre = [
-            it for it in listing
-            if any(k in norm(it.get("title","")) or k in norm(it.get("url","")) for k in kw_list)
-        ]
-        THRESH_ABS = 50
-        THRESH_REL = 0.2  # 20%
-        use_prefilter = len(pre) >= max(THRESH_ABS, int(before * THRESH_REL))
-        if use_prefilter:
-            listing = pre
-            print(f"Prefiltro por {kw_list} aplicado: {len(listing)} (antes {before})")
-        else:
-            print(f"Prefiltro por {kw_list} NO aplicado ({len(pre)} candidatos). Buscaré en el cuerpo de {before} URLs.")
+    
+    listing_after_l1, l1_applied = apply_layer1_filter(listing, kw_list)
+    if l1_applied:
+        print(f"Layer 1 (keywords incluidas): {len(listing_after_l1)} artículos (antes {len(listing)})")
+    elif kw_list:
+        print(f"Layer 1 (keywords incluidas): NO aplicado (buscaré en el cuerpo de {len(listing)} URLs)")
+    else:
+        print(f"Layer 1: Sin keywords configuradas, se procesan los {len(listing)} artículos")
 
     collected = []
-    for i, item in enumerate(listing, 1):
+    for i, item in enumerate(listing_after_l1, 1):
         url = item["url"]
 
-        # respeta 'seen' solo si no hay filtro
+        # respeta 'seen' solo si no hay filtro de Layer 1
         if not kw_list and url in seen:
             continue
 
@@ -605,20 +674,34 @@ def main(keyword=None, tzname="Europe/Madrid"):
             log(f"Error extrayendo {url}: {e}")
             continue
 
-        # si hay keywords, deben aparecer en título o cuerpo
-        if kw_list:
-            fulltxt = norm((art.get("title") or "") + " " + (art.get("content") or ""))
-            if not any(k in fulltxt for k in kw_list):
-                continue
-
         # exigir fecha y limitar por ventana reciente
         if not art.get("published") or not is_recent(art.get("published"), tzname=tzname):
             continue
 
+        # Layer 1 (búsqueda profunda en contenido si no se aplicó prefiltro)
+        if kw_list and not l1_applied:
+            fulltxt = norm((art.get("title") or "") + " " + (art.get("content") or ""))
+            if not any(k in fulltxt for k in kw_list):
+                continue
+
+        article_full_text = (art.get("title") or "") + " " + (art.get("content") or "")
+
+        # ========= LAYER 2: Excluir por palabras prohibidas =========
+        if KEYWORDS_L2_EXCLUDED:
+            if apply_layer2_filter(article_full_text, KEYWORDS_L2_EXCLUDED):
+                log(f"[{i}] EXCLUIDO (Layer 2) [{item.get('source','?')}]: {art.get('title','')[:80]}")
+                continue
+
+        # ========= LAYER 3: Filtro final (palabras obligatorias) =========
+        if KEYWORDS_L3_FINAL:
+            if not apply_layer3_filter(article_full_text, KEYWORDS_L3_FINAL):
+                log(f"[{i}] EXCLUIDO (Layer 3) [{item.get('source','?')}]: {art.get('title','')[:80]}")
+                continue
+
         art["source"] = item.get("source","?")
         collected.append(art)
         seen.add(url)
-        log(f"[{i}/{len(listing)}] OK [{art['source']}]: {art.get('title','')[:80]}")
+        log(f"[{i}/{len(listing_after_l1)}] OK [{art['source']}]: {art.get('title','')[:80]}")
 
     save_state(seen)
 
@@ -648,9 +731,18 @@ def main(keyword=None, tzname="Europe/Madrid"):
     # Enviar correo si hay noticias o datos CNMV
     if collected or cnmv_blocks:
         filtro = ""
+        layers_active = []
         if kw_list:
-            filtro_vals = keyword if isinstance(keyword, (list, tuple, set)) else [keyword]
-            filtro = f" — filtro: {', '.join(str(k) for k in filtro_vals if k)}"
+            kw_display = keyword if isinstance(keyword, (list, tuple, set)) else [keyword]
+            layers_active.append(f"L1:{', '.join(str(k) for k in kw_display if k)}")
+        if KEYWORDS_L2_EXCLUDED:
+            layers_active.append("L2:excluidas")
+        if KEYWORDS_L3_FINAL:
+            layers_active.append("L3:finales")
+        
+        if layers_active:
+            filtro = f" — filtros: {' | '.join(layers_active)}"
+        
         asunto = f"Noticias de hoy ({datetime.now().strftime('%Y-%m-%d')}){filtro}"
         enviar_correo(html, subject=asunto)
     else:
