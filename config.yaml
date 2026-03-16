@@ -3,21 +3,72 @@ cnmv_nifs: "A-28294726"
 # Puedes poner una o varias entre comillas. 
 # Si no quieres filtro, deja las comillas vacías: ""
 keywords:
-  - "Trump"
-  - "Sanchez"
-  - "Europa"
+  - "Reclamación"
+  - "Reclamación judicial"
+  - "Reclamación extrajudicial"
+  - "Demanda"
+  - "Procedimiento civil"
+  - "Procedimiento mercantil"
+  - "Procedimiento contencioso-administrativo"
+  - "Procedimiento judicial"
+  - "Litigio"
+  - "Pleito"
+  - "Conflicto legal"
+  - "Disputa judicial"
+  - "Incumplimiento de contrato"
+  - "Acción judicial"
+  - "Acción de reclamación"
+  - "Condena"
+  - "Sentencia"
+  - "Fallo judicial"
+  - "Resolución judicial"
+  - "Acuerdo extrajudicial"
+  - "Responsabilidad contractual"
+  - "Incumplimiento contractual"
+  - "Resolución contractual"
+  - "Nulidad de contrato"
+  - "Nulidad contractual"
+  - "Cláusulas abusivas"
+  - "Responsabilidad civil"
+  - "Responsabilidad de administradores"
+  - "Conflicto societario"
+  - "Accionistas mayoritarios"
+  - "Accionistas minoritarios"
+  - "Impugnación de acuerdos sociales"
+  - "Reclamación bancaria"
+  - "Reclamación patrimonial"
+  - "Reclamación patrimonial del Estado"
+  - "Reclamación contra la Administración"
+  - "Responsabilidad patrimonial de la Administración"
+  - "RPA"
+  - "Expropiación"
+  - "Expropiación forzosa"
+  - "Justiprecio"
+  - "Valoración expropiatoria"
+  - "Concesión administrativa"
+  - "Arbitraje"
+  - "Arbitraje nacional"
+  - "Arbitraje internacional"
+  - "Laudo"
+  - "Laudo arbitral"
+  - "Ejecución de laudo"
 
 # ❌ Palabras clave para EXCLUIR de los resultados (Layer 2).
 # El contenido que pase Layer 1 será descartado si contiene estas palabras.
 # Si no quieres usar este filtro, deja la lista vacía: []
 excluded_keywords: [
-  "Irán","guerra"
+  "Laboral","Despido","ERTE","ERE","Huelga","Seguridad Social","Baja laboral","Pensión","Jubilación","Conflicto colectivo","Penal","Delito","Blanqueo de capitales","Apropiación indebida",
+  "Fiscalía","Ministerio Fiscal","Instrucción penal","Querella","Juicio penal",
+  "Juzgado de instrucción","Investigación judicial","Prisión","Familia","Divorcio","Custodia","Pensión de alimentos","Multa","Tráfico","Clausulas suelo","Gastos hipotecarios"
 ]
 
 # ✅ Palabras clave FINALES (Layer 3).
 # Solo se incluirá contenido que contenga estas palabras (tras pasar Layer 1 y Layer 2).
 # Si no quieres usar este filtro, deja la lista vacía: []
-keywords_final_layer: ["Champions"]
+keywords_final_layer: [
+"Indemnización","Reclamación","Daños y perjuicios","Reclamación millonaria","Indemnización millonaria","Cuantía millonaria","Millones de euros","Millones","Millón de euros","Millón",
+"Elevada cuantía","Perjuicio económico","Pérdidas millonarias","Compensación económica","Dinero","Cuantía","Importe"
+]
 
 # 🌍 Zona horaria (normalmente no se toca).
 # Si estás en España, deja "Europe/Madrid".
