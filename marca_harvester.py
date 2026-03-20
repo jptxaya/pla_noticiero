@@ -633,7 +633,7 @@ def apply_layer3_filter(article_text, final_kw_list):
     return any(k in fulltxt for k in final_kw_list)
 
 def main(keyword=None, tzname="Europe/Madrid"):
-    log(f"CNMV_NIFS configurados: {CNMV_NIFS}")
+    #log(f"CNMV_NIFS configurados: {CNMV_NIFS}")
     seen = load_state()
     listing = parse_all_listings()
 
@@ -682,21 +682,24 @@ def main(keyword=None, tzname="Europe/Madrid"):
         if kw_list and not l1_applied:
             fulltxt = norm((art.get("title") or "") + " " + (art.get("content") or ""))
             if not any(k in fulltxt for k in kw_list):
+                log(f"[{i}] Layer_1 NO Passed:{url}")   
                 continue
-
+        log(f"[{i}] Layer_1 PASSED:{url}")  
         article_full_text = (art.get("title") or "") + " " + (art.get("content") or "")
 
         # ========= LAYER 2: Excluir por palabras prohibidas =========
         if KEYWORDS_L2_EXCLUDED:
             if apply_layer2_filter(article_full_text, KEYWORDS_L2_EXCLUDED):
-                log(f"[{i}] EXCLUIDO (Layer 2) [{item.get('source','?')}]: {art.get('title','')[:80]}")
+                log(f"[{i}] Layer_2 NO Passed: [{item.get('source','?')}]: {art.get('title','')[:80]}")
                 continue
+        log(f"[{i}] Layer_2 PASSED:[{item.get('source','?')}]: {art.get('title','')[:80]}")
 
         # ========= LAYER 3: Filtro final (palabras obligatorias) =========
         if KEYWORDS_L3_FINAL:
             if not apply_layer3_filter(article_full_text, KEYWORDS_L3_FINAL):
-                log(f"[{i}] EXCLUIDO (Layer 3) [{item.get('source','?')}]: {art.get('title','')[:80]}")
+                log(f"[{i}] Layer_3 NO Passed [{item.get('source','?')}]: {art.get('title','')[:80]}")
                 continue
+        log(f"[{i}] Layer_3 PASSED:[{item.get('source','?')}]: {art.get('title','')[:80]}")
 
         art["source"] = item.get("source","?")
         collected.append(art)
@@ -728,6 +731,9 @@ def main(keyword=None, tzname="Europe/Madrid"):
     else:
         html = html_news + (cnmv_html or "")
 
+    html_totals = f"<hr style='margin:32px 0;'><h2>Artículos leidos ({len(listing)})</h2><h2>Artículos Passed Filters: ({len(collected)})</h2></hr>"
+    html = html.replace("</body></html>", html_totals + "\n</body></html>")
+    
     # Enviar correo si hay noticias o datos CNMV
     if collected or cnmv_blocks:
         filtro = ""
@@ -746,7 +752,10 @@ def main(keyword=None, tzname="Europe/Madrid"):
         asunto = f"Noticias de hoy ({datetime.now().strftime('%Y-%m-%d')}){filtro}"
         enviar_correo(html, subject=asunto)
     else:
-        log("No hay artículos ni posiciones cortas para enviar en el rango actual.")
+        #Se envia correo para indicar que no se han encontrado artículos relevantes, en lugar de enviar un email vacío o sin información.
+        enviar_correo(html, subject=f"Noticias de hoy ({datetime.now().strftime('%Y-%m-%d')}) — Sin artículos relevantes")
+        log("No se han encontrado articulos que cumplan los criterios de filtrado.")
+        #log("No hay artículos ni posiciones cortas para enviar en el rango actual.")
 
     log(f"Artículos enviados: {len(collected)}")
     log(f"NIFs CNMV procesados: {len(cnmv_blocks)}")
