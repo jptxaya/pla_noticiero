@@ -48,6 +48,29 @@ def norm(s: str) -> str:
     s = unicodedata.normalize('NFKD', s)
     return ''.join(c for c in s if not unicodedata.combining(c)).lower()
 
+def normalize_match_text(s: str) -> str:
+    """
+    Normaliza texto para matching exacto por palabras/frases:
+    - minúsculas
+    - sin tildes
+    - puntuación y separadores convertidos a espacios
+    - espacios colapsados
+    """
+    s = norm(s)
+    s = re.sub(r"[^a-z0-9]+", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+def contains_keyword(text: str, keyword: str) -> bool:
+    """
+    Comprueba si keyword aparece como palabra completa o frase completa,
+    evitando coincidencias parciales como 'dinero' dentro de 'sardinero'.
+    """
+    txt = normalize_match_text(text)
+    kw = normalize_match_text(keyword)
+    if not txt or not kw:
+        return False
+    return f" {kw} " in f" {txt} "
+
 # ========= FILTERING LAYERS =========
 
 def _normalize_keywords(raw):
@@ -56,9 +79,9 @@ def _normalize_keywords(raw):
         return []
     if isinstance(raw, str):
         parts = re.split(r"[,\s;]+", raw)
-        return [norm(p.strip()) for p in parts if p.strip()]
+        return [normalize_match_text(p.strip()) for p in parts if p.strip()]
     if isinstance(raw, (list, tuple, set)):
-        return [norm(str(x).strip()) for x in raw if str(x).strip()]
+        return [normalize_match_text(str(x).strip()) for x in raw if str(x).strip()]
     return []
 
 # Layer 1: Keywords (include articles matching these)
@@ -590,7 +613,7 @@ def enviar_correo(html_content, subject):
 # ========= MAIN =========
 def apply_layer1_filter(listing, kw_list):
     """
-    Layer 1: Prefiltro solo por título si hay keywords y reduce significativamente.
+    Layer 1: Prefiltro solo por título con matching exacto por palabras/frases.
     Si no hay keywords, devuelve el listing sin cambios.
     """
     if not kw_list:
@@ -599,7 +622,7 @@ def apply_layer1_filter(listing, kw_list):
     before = len(listing)
     pre = [
         it for it in listing
-        if any(k in norm(it.get("title","")) for k in kw_list)
+        if any(contains_keyword(it.get("title", ""), k) for k in kw_list)
     ]
     THRESH_ABS = 50
     THRESH_REL = 0.2  # 20%
@@ -618,8 +641,7 @@ def apply_layer2_filter(article_text, excluded_kw_list):
     if not excluded_kw_list:
         return False
     
-    fulltxt = norm(article_text)
-    return any(k in fulltxt for k in excluded_kw_list)
+    return any(contains_keyword(article_text, k) for k in excluded_kw_list)
 
 def apply_layer3_filter(article_text, final_kw_list):
     """
@@ -629,8 +651,7 @@ def apply_layer3_filter(article_text, final_kw_list):
     if not final_kw_list:
         return True  # Si no hay keywords finales, pasar todo
     
-    fulltxt = norm(article_text)
-    return any(k in fulltxt for k in final_kw_list)
+    return any(contains_keyword(article_text, k) for k in final_kw_list)
 
 def main(keyword=None, tzname="Europe/Madrid"):
     #log(f"CNMV_NIFS configurados: {CNMV_NIFS}")
@@ -647,15 +668,15 @@ def main(keyword=None, tzname="Europe/Madrid"):
     # Sobreescribir si se pasa keyword como parámetro (para CLI)
     if keyword:
         if isinstance(keyword, (list, tuple, set)):
-            kw_list = [norm(k) for k in keyword if k]
+            kw_list = [normalize_match_text(k) for k in keyword if k]
         else:
-            kw_list = [norm(keyword)]
+            kw_list = [normalize_match_text(keyword)]
     
     listing_after_l1, l1_applied = apply_layer1_filter(listing, kw_list)
     if l1_applied:
         print(f"Layer 1 (keywords incluidas): {len(listing_after_l1)} artículos (antes {len(listing)})")
     elif kw_list:
-        print(f"Layer 1 (keywords incluidas): NO aplicado (buscaré en el cuerpo de {len(listing)} URLs)")
+        print(f"Layer 1 (keywords incluidas): NO aplicado (revisaré el título de {len(listing)} URLs extraídas)")
     else:
         print(f"Layer 1: Sin keywords configuradas, se procesan los {len(listing)} artículos")
 
@@ -680,8 +701,8 @@ def main(keyword=None, tzname="Europe/Madrid"):
 
         # Layer 1 (si no se aplicó prefiltro, comprobar solo contra el título)
         if kw_list and not l1_applied:
-            title_txt = norm(art.get("title") or "")
-            if not any(k in title_txt for k in kw_list):
+            title_txt = art.get("title") or ""
+            if not any(contains_keyword(title_txt, k) for k in kw_list):
                 log(f"[{i}] Layer_1 NO Passed:{url}")   
                 continue
         log(f"[{i}] Layer_1 PASSED:{url}")  
