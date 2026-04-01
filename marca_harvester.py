@@ -658,6 +658,8 @@ def main(keyword=None, tzname="Europe/Madrid"):
     seen = load_state()
     listing = parse_all_listings()
 
+    listing = listing[:15]
+
     print("Primeros 15 títulos del listing combinado:")
     for it in listing[:15]:
         print(" -", f"[{it.get('source','?')}] {(it.get('title') or '').strip()}")
