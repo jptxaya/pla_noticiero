@@ -749,7 +749,7 @@ def main(keyword=None, tzname="Europe/Madrid"):
         if layers_active:
             filtro = f" — filtros: {' | '.join(layers_active)}"
         
-        asunto = f"Noticias de hoy ({datetime.now().strftime('%Y-%m-%d')}){filtro}"
+        asunto = f"Noticias de hoy ({datetime.now().strftime('%Y-%m-%d')})"
         enviar_correo(html, subject=asunto)
     else:
         #Se envia correo para indicar que no se han encontrado artículos relevantes, en lugar de enviar un email vacío o sin información.
