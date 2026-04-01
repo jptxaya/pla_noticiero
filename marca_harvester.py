@@ -590,7 +590,7 @@ def enviar_correo(html_content, subject):
 # ========= MAIN =========
 def apply_layer1_filter(listing, kw_list):
     """
-    Layer 1: Prefiltro por título/URL si hay keywords y reduce significativamente.
+    Layer 1: Prefiltro solo por título si hay keywords y reduce significativamente.
     Si no hay keywords, devuelve el listing sin cambios.
     """
     if not kw_list:
@@ -599,7 +599,7 @@ def apply_layer1_filter(listing, kw_list):
     before = len(listing)
     pre = [
         it for it in listing
-        if any(k in norm(it.get("title","")) or k in norm(it.get("url","")) for k in kw_list)
+        if any(k in norm(it.get("title","")) for k in kw_list)
     ]
     THRESH_ABS = 50
     THRESH_REL = 0.2  # 20%
@@ -678,10 +678,10 @@ def main(keyword=None, tzname="Europe/Madrid"):
         if not art.get("published") or not is_recent(art.get("published"), tzname=tzname):
             continue
 
-        # Layer 1 (búsqueda profunda en contenido si no se aplicó prefiltro)
+        # Layer 1 (si no se aplicó prefiltro, comprobar solo contra el título)
         if kw_list and not l1_applied:
-            fulltxt = norm((art.get("title") or "") + " " + (art.get("content") or ""))
-            if not any(k in fulltxt for k in kw_list):
+            title_txt = norm(art.get("title") or "")
+            if not any(k in title_txt for k in kw_list):
                 log(f"[{i}] Layer_1 NO Passed:{url}")   
                 continue
         log(f"[{i}] Layer_1 PASSED:{url}")  
