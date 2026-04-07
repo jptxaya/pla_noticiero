@@ -13,7 +13,6 @@ import yaml
 from email.message import EmailMessage
 from w3lib.html import get_base_url
 from dateutil import tz, parser as dateparser
-from sentence_transformers import SentenceTransformer, util
 
 CONFIG_FILE = "config.yaml"
 
