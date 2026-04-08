@@ -35,19 +35,12 @@ keywords:
 # ❌ Palabras clave para EXCLUIR de los resultados (Layer 2).
 # El contenido que pase Layer 1 será descartado si contiene estas palabras.
 # Si no quieres usar este filtro, deja la lista vacía: []
-excluded_keywords: [
-  "Laboral","Despido","ERTE","ERE","Huelga","Seguridad Social","Baja laboral","Pensión","Jubilación","Conflicto colectivo","Penal","Delito","Blanqueo de capitales","Apropiación indebida",
-  "Fiscalía","Ministerio Fiscal","Instrucción penal","Querella","Juicio penal",
-  "Juzgado de instrucción","Investigación judicial","Prisión","Familia","Divorcio","Custodia","Pensión de alimentos","Multa","Tráfico","Clausulas suelo","Gastos hipotecarios"
-]
+excluded_keywords: []
 
 # ✅ Palabras clave FINALES (Layer 3).
 # Solo se incluirá contenido que contenga estas palabras (tras pasar Layer 1 y Layer 2).
 # Si no quieres usar este filtro, deja la lista vacía: []
-keywords_final_layer: [
-  "Indemnización","Reclamación","Daños y perjuicios","Reclamación millonaria","Indemnización millonaria","Cuantía millonaria","Millones de euros","Millones","Millón de euros","Millón",
-  "Elevada cuantía","Perjuicio económico","Pérdidas millonarias","Compensación económica","Dinero","Cuantía","Importe"
-]
+keywords_final_layer: []
 
 # 🌍 Zona horaria (normalmente no se toca).
 # Si estás en España, deja "Europe/Madrid".
@@ -55,7 +48,7 @@ tzname: "Europe/Madrid"
 
 # ⏱️ Cuántas horas hacia atrás se buscan noticias recientes.
 # 24 significa "últimas 24 horas".
-hours_recent: 168
+hours_recent: 24
 
 # 📧 A qué correos se enviará el resumen.
 # Puedes añadir más poniendo cada uno en una línea nueva con "-".
